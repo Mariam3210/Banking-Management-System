@@ -1,10 +1,8 @@
 
 package bankingmanagementsystem;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.Statement;
-import java.sql.SQLException;
+
+import java.sql.*;
 import javax.swing.JOptionPane;
 
 public class JavaDb {
@@ -12,47 +10,40 @@ public class JavaDb {
     private static final String DB_URL = "jdbc:mysql://localhost:3306/";
     private static final String DB_NAME = "banking_db";
     private static final String USER = "root";
-    private static final String PASSWORD = ""; // REPLACE THIS
+    private static final String PASSWORD = "";
 
     public JavaDb() {
         try {
-            // Use correct driver for MySQL 8+
             Class.forName("com.mysql.jdbc.Driver");
-        } catch (ClassNotFoundException e) {
-            showError("MySQL JDBC Driver not found!\n"
-                    + "Make sure mysql-connector-java-5.1.46.jar is in your classpath.");
-            return;
-        }
-
-        try {
-            // Connect to MySQL without specifying DB first
-            conn = DriverManager.getConnection(DB_URL+DB_NAME, USER, PASSWORD);
-
+            conn = DriverManager.getConnection(DB_URL + DB_NAME, USER, PASSWORD);
+            
             try (Statement stmt = conn.createStatement()) {
-                // Create DB if not exists
-                stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + DB_NAME);
-                // Switch to that DB
-                conn.setCatalog(DB_NAME);
-                // Create table if not exists
-                String tableSQL = "CREATE TABLE IF NOT EXISTS Bank (" +
-                        "account_number INT PRIMARY KEY," +
-                        "customer_name VARCHAR(100) NOT NULL," +
-                        "mobile_number VARCHAR(15) NOT NULL," +
-                        "balance DECIMAL(15,2) NOT NULL DEFAULT 0.00)";
-                stmt.executeUpdate(tableSQL);
-                System.out.println("Database and table 'Bank' initialized.");
+                // Create tables if they don't exist
+                stmt.execute("CREATE TABLE IF NOT EXISTS Bank (" +
+                    "account_number VARCHAR(50) PRIMARY KEY," +
+                    "customer_name VARCHAR(100) NOT NULL," +
+                    "mobile_number VARCHAR(15) NOT NULL," +
+                    "balance DECIMAL(15,2) NOT NULL)");
+                
+                stmt.execute("CREATE TABLE IF NOT EXISTS Transactions (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "account_number VARCHAR(50)," +
+                    "type VARCHAR(20)," +
+                    "amount DECIMAL(15,2)," +
+                    "date TIMESTAMP DEFAULT CURRENT_TIMESTAMP)");
+                
+                stmt.execute("CREATE TABLE IF NOT EXISTS Loans (" +
+                    "id INT AUTO_INCREMENT PRIMARY KEY," +
+                    "account_number VARCHAR(50)," +
+                    "amount DECIMAL(15,2)," +
+                    "interest_rate DECIMAL(5,2)," +
+                    "installments INT)");
             }
-
-        } catch (SQLException e) {
-            showError("Failed to connect or create table.\n" + e.getMessage());
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null, 
+                "Database Error: " + e.getMessage(), 
+                "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }
-
-    private void showError(String message) {
-        JOptionPane.showMessageDialog(null, 
-                message, 
-                "Database Error", 
-                JOptionPane.ERROR_MESSAGE);
     }
 
     public Connection getConnection() {
@@ -61,12 +52,9 @@ public class JavaDb {
 
     public void closeConnection() {
         try {
-            if (conn != null && !conn.isClosed()) {
-                conn.close();
-                System.out.println("Database connection closed.");
-            }
+            if (conn != null) conn.close();
         } catch (SQLException e) {
-            showError("Error closing connection: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
